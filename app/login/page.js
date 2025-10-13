@@ -4,22 +4,25 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const router = useRouter()
 
   async function handleLogin(e) {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    const { data, error } = await supabase.auth.signInWithPassword({
+
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
+
     setLoading(false)
     if (error) {
       setError(error.message)
@@ -64,6 +67,17 @@ export default function Login() {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+        <div className="text-sm text-center">
+          <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+            Forgot your password?
+          </Link>
+        </div>
+        <p className="text-center text-sm text-gray-600">
+          Don't have an account?{' '}
+          <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+            Sign up here
+          </Link>
+        </p>
       </div>
     </div>
   )
