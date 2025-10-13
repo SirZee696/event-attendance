@@ -24,10 +24,13 @@ export default function SignUp() {
       password,
     })
     setLoading(false)
-    if (error) {
+    if (error) { // Handle explicit errors from Supabase
       setError(error.message)
+    } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+      // Handle case where user exists but is not confirmed
+      setError('This email address is already in use. Please try logging in.');
     } else {
-      setMessage('Check your email for the confirmation link!')
+      setMessage('Check your email for the confirmation link!');
     }
   }
 
