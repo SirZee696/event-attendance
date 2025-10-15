@@ -95,14 +95,14 @@ export default function Dashboard() {
       // Check if the user's profile is complete
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name, user_role, institution')
+        .select('first_name, last_name, user_role, agency')
         .eq('id', user.id)
         .single();
 
       setProfile(profileData);
       if (error && error.code !== 'PGRST116') { // PGRST116: row not found
         console.error('Error fetching profile:', error);
-      } else if (!profileData || !profileData.first_name || !profileData.last_name || !profileData.user_role || !profileData.institution) {
+      } else if (!profileData || !profileData.first_name || !profileData.last_name || !profileData.user_role || (profileData.user_role !== 'guest' && !profileData.agency)) {
         // If profile is incomplete, redirect to the account page
         router.push('/account');
       }
