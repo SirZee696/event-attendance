@@ -12,6 +12,7 @@ export default function Account() {
   const [userRole, setUserRole] = useState(null)
   const [firstName, setFirstName] = useState(null)
   const [lastName, setLastName] = useState(null)
+  const [institution, setInstitution] = useState(null)
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [message, setMessage] = useState(null)
   const router = useRouter()
@@ -40,7 +41,7 @@ export default function Account() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select(`username, first_name, last_name, user_role, avatar_url`)
+        .select(`username, first_name, last_name, user_role, institution, avatar_url`)
         .eq('id', user.id)
         .single()
 
@@ -56,6 +57,7 @@ export default function Account() {
         }
         setFirstName(data.first_name)
         setLastName(data.last_name)
+        setInstitution(data.institution)
         setAvatarUrl(data.avatar_url)
       }
       setUser(user)
@@ -76,6 +78,7 @@ export default function Account() {
       user_role: userRole,
       first_name: firstName,
       last_name: lastName,
+      institution: institution,
       avatar_url: avatarUrl,
       updated_at: new Date(),
     }
@@ -154,6 +157,23 @@ export default function Account() {
                   <option value="guest">Guest</option>
                 </>
               )}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="institution" className="text-sm font-medium text-gray-700">Institution</label>
+            <select
+              id="institution"
+              value={institution ?? ''}
+              onChange={(e) => setInstitution(e.target.value)}
+              className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="" disabled>Select an institution</option>
+              <option value="CAS">College of Arts and Sciences</option>
+              <option value="CBA">College of Business Administration</option>
+              <option value="COE">College of Engineering</option>
+              <option value="CIT">College of Information Technology</option>
+              <option value="MLUC">Mid La Union Campus</option>
+              <option value="SLUC">South La Union Campus</option>
             </select>
           </div>
 
