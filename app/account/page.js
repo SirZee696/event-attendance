@@ -14,6 +14,7 @@ export default function Account() {
   const [lastName, setLastName] = useState(null)
   const [agency, setAgency] = useState(null)
   const [address, setAddress] = useState(null)
+  const [sex, setSex] = useState(null)
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [message, setMessage] = useState(null)
   const router = useRouter()
@@ -45,7 +46,7 @@ export default function Account() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select(`username, first_name, last_name, user_role, agency, avatar_url, address`)
+        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex`)
         .eq('id', user.id)
         .single()
 
@@ -63,6 +64,7 @@ export default function Account() {
         setLastName(data.last_name)
         setAgency(data.agency)
         setAddress(data.address)
+        setSex(data.sex)
         setAvatarUrl(data.avatar_url)
       }
       setUser(user)
@@ -85,6 +87,7 @@ export default function Account() {
       last_name: lastName,
       agency: agency,
       address: address,
+      sex: sex,
       avatar_url: avatarUrl,
       updated_at: new Date(),
     }
@@ -92,11 +95,16 @@ export default function Account() {
     const { error } = await supabase.from('profiles').upsert(updates)
 
     if (error) {
-      alert(error.message)
+      if (error.message.includes('profiles_username_key')) {
+        setMessage({ text: 'This username is already taken. Please choose another one.', type: 'error' });
+      } else {
+        setMessage({ text: error.message, type: 'error' });
+      }
     } else {
-      setMessage('Profile updated successfully!')
+      setMessage({ text: 'Profile updated successfully!', type: 'success' })
     }
     setLoading(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
@@ -105,11 +113,25 @@ export default function Account() {
         <h1 className="text-2xl font-bold text-center text-gray-900">
           Account Settings
         </h1>
-        {message && <p className="text-center text-green-500">{message}</p>}
+        {message && (
+          <p className={`text-center ${message.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+            {message.text}
+          </p>
+        )}
         <form className="space-y-4" onSubmit={updateProfile}>
           <div>
             <label htmlFor="email" className="text-sm font-medium text-gray-700">Email</label>
             <input id="email" type="text" value={user?.email || ''} disabled className="w-full px-4 py-2 mt-1 text-gray-500 bg-gray-200 border rounded-lg cursor-not-allowed" />
+          </div>
+          <div>
+            <label htmlFor="username" className="text-sm font-medium text-gray-700">Username</label>
+            <input
+              id="username"
+              type="text"
+              value={username || ''}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
           <div>
             <label htmlFor="firstName" className="text-sm font-medium text-gray-700">First Name</label>
@@ -142,14 +164,17 @@ export default function Account() {
             />
           </div>
           <div>
-            <label htmlFor="username" className="text-sm font-medium text-gray-700">Username</label>
-            <input
-              id="username"
-              type="text"
-              value={username || ''}
-              onChange={(e) => setUsername(e.target.value)}
+            <label htmlFor="sex" className="text-sm font-medium text-gray-700">Sex</label>
+            <select
+              id="sex"
+              value={sex ?? ''}
+              onChange={(e) => setSex(e.target.value)}
               className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            >
+              <option value="" disabled>Select your sex</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
           </div>
           <div>
             <label htmlFor="role" className="text-sm font-medium text-gray-700">Role</label>
