@@ -95,14 +95,14 @@ export default function Dashboard() {
       // Check if the user's profile is complete
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('first_name, last_name, user_role, agency, address, sex, photo_consent, social_media_consent, signature_url')
+        .select('username, first_name, last_name, user_role, agency, address, sex, photo_consent, social_media_consent, signature_url')
         .eq('id', user.id)
         .single();
 
       setProfile(profileData);
       if (error && error.code !== 'PGRST116') { // PGRST116: row not found
         console.error('Error fetching profile:', error);
-      } else if (!profileData || !profileData.first_name || !profileData.last_name || !profileData.user_role || !profileData.address || !profileData.sex || profileData.photo_consent === null || profileData.social_media_consent === null || !profileData.signature_url || (profileData.user_role !== 'guest' && !profileData.agency)) {
+      } else if (!profileData || !profileData.username || !profileData.first_name || !profileData.last_name || !profileData.user_role || !profileData.address || !profileData.sex || profileData.photo_consent === null || profileData.social_media_consent === null || !profileData.signature_url || (profileData.user_role !== 'guest' && !profileData.agency)) {
         // If profile is incomplete, redirect to the account page
         router.push('/account');
       }
@@ -130,8 +130,50 @@ export default function Dashboard() {
       <main className="p-8">
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="mt-2 text-lg text-gray-600">
-          Welcome back, {profile?.first_name || user.email}!
+          Welcome back, {profile?.username || user.email}!
         </p>
+
+        <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+            Here is what your attendance detail looks like
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border border-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Occupation</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agency</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Details</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sex</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consent for Picture</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consent for Social Media</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Signature</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                <tr>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{profile.last_name}, {profile.first_name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{profile.address}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{profile.user_role}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{profile.agency}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate">{user.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{profile.sex}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{profile.photo_consent ? 'Yes' : 'No'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{profile.social_media_consent ? 'Yes' : 'No'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <img 
+                      src={profile.signature_url} 
+                      alt="User signature" 
+                      className="h-12 border border-gray-300 rounded-md bg-white" 
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            </div>
+        </div>
       </main>
     </div>
   )
