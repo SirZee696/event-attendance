@@ -17,6 +17,7 @@ export default function Account() {
   const [sex, setSex] = useState(null)
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [photoConsent, setPhotoConsent] = useState(false)
+  const [socialMediaConsent, setSocialMediaConsent] = useState(false)
   const [message, setMessage] = useState(null)
   const router = useRouter()
 
@@ -47,7 +48,7 @@ export default function Account() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex, photo_consent`)
+        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex, photo_consent, social_media_consent`)
         .eq('id', user.id)
         .single()
 
@@ -67,6 +68,7 @@ export default function Account() {
         setAddress(data.address)
         setSex(data.sex)
         setPhotoConsent(data.photo_consent)
+        setSocialMediaConsent(data.social_media_consent)
         setAvatarUrl(data.avatar_url)
       }
       setUser(user)
@@ -91,6 +93,7 @@ export default function Account() {
       address: address,
       sex: sex,
       photo_consent: photoConsent,
+      social_media_consent: socialMediaConsent,
       avatar_url: avatarUrl,
       updated_at: new Date(),
     }
@@ -237,6 +240,20 @@ export default function Account() {
             </div>
             <div className="ml-3 text-sm">
               <label htmlFor="photoConsent" className="font-medium text-gray-700">I allow to have my picture taken for official documentation purpose</label>
+            </div>
+          </div>
+          <div className="flex items-start pt-2">
+            <div className="flex items-center h-5">
+              <input
+                id="socialMediaConsent"
+                type="checkbox"
+                checked={socialMediaConsent}
+                onChange={(e) => setSocialMediaConsent(e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+            </div>
+            <div className="ml-3 text-sm">
+              <label htmlFor="socialMediaConsent" className="font-medium text-gray-700">I allow my photo to be shared on social media and email for official documentation purpose only.</label>
             </div>
           </div>
 
