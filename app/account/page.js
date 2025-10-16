@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import SignatureCanvas from 'react-signature-canvas'
 
 export default function Account() {
   const [loading, setLoading] = useState(true)
@@ -18,8 +19,10 @@ export default function Account() {
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [photoConsent, setPhotoConsent] = useState(false)
   const [socialMediaConsent, setSocialMediaConsent] = useState(false)
+  const [signatureUrl, setSignatureUrl] = useState(null)
   const [message, setMessage] = useState(null)
   const router = useRouter()
+  const sigPad = useRef(null)
 
   useEffect(() => {
     async function getProfile() {
@@ -48,7 +51,7 @@ export default function Account() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex, photo_consent, social_media_consent`)
+        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex, photo_consent, social_media_consent, signature_url`)
         .eq('id', user.id)
         .single()
 
@@ -69,6 +72,7 @@ export default function Account() {
         setSex(data.sex)
         setPhotoConsent(data.photo_consent)
         setSocialMediaConsent(data.social_media_consent)
+        setSignatureUrl(data.signature_url)
         setAvatarUrl(data.avatar_url)
       }
       setUser(user)
@@ -83,6 +87,11 @@ export default function Account() {
     setLoading(true)
     setMessage(null)
 
+    // Get signature data URL if the pad is not empty
+    const newSignatureUrl = sigPad.current && !sigPad.current.isEmpty()
+      ? sigPad.current.toDataURL('image/png')
+      : signatureUrl; // Keep the old one if the pad is not touched
+
     const updates = {
       id: user.id,
       username,
@@ -94,6 +103,7 @@ export default function Account() {
       sex: sex,
       photo_consent: photoConsent,
       social_media_consent: socialMediaConsent,
+      signature_url: newSignatureUrl,
       avatar_url: avatarUrl,
       updated_at: new Date(),
     }
@@ -109,6 +119,7 @@ export default function Account() {
     } else {
       setMessage({ text: 'Profile updated successfully!', type: 'success' })
     }
+    setSignatureUrl(newSignatureUrl); // Update local state to show new signature if saved
     setLoading(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -221,11 +232,11 @@ export default function Account() {
                 <>
                   <option value="" disabled>Select an institution</option>
                   <option value="SLUC">South La Union Campus</option>
-                  <option value="NLUC">North La Union Campus</option>
-                  <option value="MLUC">Mid La Union Campus</option>
-                  <option value="CA">Central Administration</option>
+                  <option value="NLUC" disabled>North La Union Campus</option>
+                  <option value="MLUC" disabled>Mid La Union Campus</option>
+                  <option value="CA" disabled>Central Administration</option>
                 </>
-              )}
+                )}
             </select>
           </div>
           <div className="flex items-start pt-2">
@@ -255,6 +266,31 @@ export default function Account() {
             <div className="ml-3 text-sm">
               <label htmlFor="socialMediaConsent" className="font-medium text-gray-700">I allow my photo to be shared on social media and email for official documentation purpose only.</label>
             </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Digital Signature</label>
+            <div className="mt-1 border border-gray-300 rounded-lg">
+              <SignatureCanvas
+                ref={sigPad}
+                penColor='black'
+                canvasProps={{ className: 'w-full h-32 rounded-lg' }}
+              />
+            </div>
+            <div className="flex justify-end mt-2">
+              <button
+                type="button"
+                onClick={() => sigPad.current.clear()}
+                className="px-3 py-1 text-sm font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+              >
+                Clear Signature
+              </button>
+            </div>
+            {signatureUrl && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-700">Current Signature:</p>
+                <img src={signatureUrl} alt="User signature" className="mt-1 border border-gray-300 rounded-lg" />
+              </div>
+            )}
           </div>
 
           <div className="pt-4 space-y-2">
