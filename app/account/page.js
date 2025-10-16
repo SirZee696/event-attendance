@@ -16,6 +16,7 @@ export default function Account() {
   const [address, setAddress] = useState(null)
   const [sex, setSex] = useState(null)
   const [avatarUrl, setAvatarUrl] = useState(null)
+  const [photoConsent, setPhotoConsent] = useState(false)
   const [message, setMessage] = useState(null)
   const router = useRouter()
 
@@ -46,7 +47,7 @@ export default function Account() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex`)
+        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex, photo_consent`)
         .eq('id', user.id)
         .single()
 
@@ -65,6 +66,7 @@ export default function Account() {
         setAgency(data.agency)
         setAddress(data.address)
         setSex(data.sex)
+        setPhotoConsent(data.photo_consent)
         setAvatarUrl(data.avatar_url)
       }
       setUser(user)
@@ -88,6 +90,7 @@ export default function Account() {
       agency: agency,
       address: address,
       sex: sex,
+      photo_consent: photoConsent,
       avatar_url: avatarUrl,
       updated_at: new Date(),
     }
@@ -221,6 +224,20 @@ export default function Account() {
                 </>
               )}
             </select>
+          </div>
+          <div className="flex items-start pt-2">
+            <div className="flex items-center h-5">
+              <input
+                id="photoConsent"
+                type="checkbox"
+                checked={photoConsent}
+                onChange={(e) => setPhotoConsent(e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+            </div>
+            <div className="ml-3 text-sm">
+              <label htmlFor="photoConsent" className="font-medium text-gray-700">I allow to have my picture taken for official documentation purpose</label>
+            </div>
           </div>
 
           <div className="pt-4 space-y-2">
