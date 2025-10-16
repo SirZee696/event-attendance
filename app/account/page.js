@@ -13,6 +13,7 @@ export default function Account() {
   const [firstName, setFirstName] = useState(null)
   const [lastName, setLastName] = useState(null)
   const [agency, setAgency] = useState(null)
+  const [address, setAddress] = useState(null)
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [message, setMessage] = useState(null)
   const router = useRouter()
@@ -44,7 +45,7 @@ export default function Account() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select(`username, first_name, last_name, user_role, agency, avatar_url`)
+        .select(`username, first_name, last_name, user_role, agency, avatar_url, address`)
         .eq('id', user.id)
         .single()
 
@@ -61,6 +62,7 @@ export default function Account() {
         setFirstName(data.first_name)
         setLastName(data.last_name)
         setAgency(data.agency)
+        setAddress(data.address)
         setAvatarUrl(data.avatar_url)
       }
       setUser(user)
@@ -82,6 +84,7 @@ export default function Account() {
       first_name: firstName,
       last_name: lastName,
       agency: agency,
+      address: address,
       avatar_url: avatarUrl,
       updated_at: new Date(),
     }
@@ -125,6 +128,16 @@ export default function Account() {
               type="text"
               value={lastName || ''}
               onChange={(e) => setLastName(e.target.value)}
+              className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="address" className="text-sm font-medium text-gray-700">Address</label>
+            <input
+              id="address"
+              type="text"
+              value={address || ''}
+              onChange={(e) => setAddress(e.target.value)}
               className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
