@@ -16,6 +16,8 @@ export default function Account() {
   const [agency, setAgency] = useState(null)
   const [address, setAddress] = useState(null)
   const [sex, setSex] = useState(null)
+  const [year, setYear] = useState(null)
+  const [section, setSection] = useState(null)
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [photoConsent, setPhotoConsent] = useState(false)
   const [socialMediaConsent, setSocialMediaConsent] = useState(false)
@@ -51,7 +53,7 @@ export default function Account() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex, photo_consent, social_media_consent, signature_url`)
+        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex, photo_consent, social_media_consent, signature_url, year, section`)
         .eq('id', user.id)
         .single()
 
@@ -73,6 +75,8 @@ export default function Account() {
         setPhotoConsent(data.photo_consent)
         setSocialMediaConsent(data.social_media_consent)
         setSignatureUrl(data.signature_url)
+        setYear(data.year)
+        setSection(data.section)
         setAvatarUrl(data.avatar_url)
       }
       setUser(user)
@@ -103,6 +107,8 @@ export default function Account() {
       sex: sex,
       photo_consent: photoConsent,
       social_media_consent: socialMediaConsent,
+      year: userRole === 'student' ? year : null,
+      section: userRole === 'student' ? section : null,
       signature_url: newSignatureUrl,
       avatar_url: avatarUrl,
       updated_at: new Date(),
@@ -198,7 +204,13 @@ export default function Account() {
             <select
               id="role"
               value={userRole ?? ''}
-              onChange={(e) => setUserRole(e.target.value)}
+              onChange={(e) => {
+                const newRole = e.target.value;
+                setUserRole(newRole);
+                // We don't need to clear year/section here because
+                // the fields are not rendered for non-students,
+                // and the updateProfile function already handles setting them to null.
+              }}
               className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:cursor-not-allowed"
               disabled={user?.email?.endsWith('@student.dmmmsu.edu.ph') || !user?.email?.endsWith('@dmmmsu.edu.ph')}
             >
@@ -239,6 +251,44 @@ export default function Account() {
                 )}
             </select>
           </div>
+          {userRole === 'student' && (
+            <>
+              <div>
+                <label htmlFor="year" className="text-sm font-medium text-gray-700">Year Level</label>
+                <select
+                  id="year"
+                  value={year || ''}
+                  onChange={(e) => setYear(e.target.value)}
+                  className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="" disabled>Select a year</option>
+                  <option value="1">1st Year</option>
+                  <option value="2">2nd Year</option>
+                  <option value="3">3rd Year</option>
+                  <option value="4">4th Year</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="section" className="text-sm font-medium text-gray-700">Section</label>
+                <select
+                  id="section"
+                  value={section || ''}
+                  onChange={(e) => setSection(e.target.value)}
+                  className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="" disabled>Select a section</option>
+                  <option value="Irregular">Irregular</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                  <option value="E">E</option>
+                  <option value="F">F</option>
+                  <option value="G">G</option>
+                </select>
+              </div>
+            </>
+          )}
           <div className="flex items-start pt-2">
             <div className="flex items-center h-5">
               <input

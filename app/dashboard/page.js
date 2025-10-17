@@ -145,6 +145,7 @@ export default function Dashboard() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Occupation</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agency</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year & Section</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Details</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sex</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consent for Picture</th>
@@ -158,6 +159,7 @@ export default function Dashboard() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{profile.address}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{profile.user_role}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{profile.agency}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{profile.user_role === 'student' ? `${profile.year} - ${profile.section}` : 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate">{user.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{profile.sex}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{profile.photo_consent ? 'Yes' : 'No'}</td>
