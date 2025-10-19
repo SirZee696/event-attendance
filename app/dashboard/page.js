@@ -86,6 +86,9 @@ const Navbar = ({ user, profile, onLogout }) => {
 export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [events, setEvents] = useState([])
+  const [currentTime, setCurrentTime] = useState(new Date())
+  const [activeTab, setActiveTab] = useState('upcoming')
   const router = useRouter()
 
   useEffect(() => {
@@ -117,9 +120,26 @@ export default function Dashboard() {
         // If profile is incomplete, redirect to the account page
         router.push('/account');
       }
+
+      // Fetch events
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('events')
+        .select('*')
+        .order('event_date', { ascending: false });
+
+      if (eventsError) console.error('Error fetching events:', eventsError);
+      else setEvents(eventsData);
     }
 
     checkUserSession();
+
+    // Set up a timer to update the current time every second for the countdown
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    // Clean up the timer when the component unmounts
+    return () => clearInterval(timer)
   }, [router])
 
   async function handleLogout() {
@@ -134,6 +154,47 @@ export default function Dashboard() {
       </div>
     )
   }
+
+  const getEventStatus = (event) => {
+    if (!event.event_date || !event.start_time || !event.end_time) {
+      return { status: 'Info Missing', timeLeft: null, color: 'text-gray-500' };
+    }
+
+    const eventStart = new Date(`${event.event_date}T${event.start_time}`);
+    const eventEnd = new Date(`${event.event_date}T${event.end_time}`);
+
+    if (currentTime < eventStart) {
+      return { status: 'Upcoming', timeLeft: null, color: 'text-blue-500' };
+    }
+
+    if (currentTime >= eventStart && currentTime <= eventEnd) {
+      const diff = eventEnd.getTime() - currentTime.getTime();
+      if (diff <= 0) {
+        return { status: 'Finished', timeLeft: null, color: 'text-red-500' };
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
+      
+      return { 
+        status: 'Ongoing', 
+        timeLeft: `${hours}:${minutes}:${seconds} left`, 
+        color: 'text-green-600 animate-pulse' 
+      };
+    }
+
+    return { status: 'Finished', timeLeft: null, color: 'text-red-500' };
+  };
+
+  const upcomingEvents = events.filter(
+    (event) => getEventStatus(event).status !== 'Finished'
+  );
+  const finishedEvents = events.filter(
+    (event) => getEventStatus(event).status === 'Finished'
+  ).sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
+
+  const eventsToDisplay = activeTab === 'upcoming' ? upcomingEvents : finishedEvents;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -154,6 +215,85 @@ export default function Dashboard() {
               Event Creator
             </span>
           )}
+        </div>
+
+        <div className="mt-8">
+          <div className="flex justify-between items-end mb-4">
+            <div>
+              <nav className="flex space-x-2 bg-gray-100 p-1 rounded-lg" aria-label="Tabs">
+                <button
+                  onClick={() => setActiveTab('upcoming')}
+                  className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${
+                    activeTab === 'upcoming'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Upcoming Events
+                </button>
+                <button
+                  onClick={() => setActiveTab('finished')}
+                  className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 ${
+                    activeTab === 'finished'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Finished Events
+                </button>
+              </nav>
+            </div>
+            {profile.can_create_events && (
+              <Link href="/events/create" className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+                Create Event
+              </Link>
+            )}
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white border border-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Time</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {eventsToDisplay.length > 0 ? (
+                    eventsToDisplay.map(event => {
+                      const { status, timeLeft, color } = getEventStatus(event);
+                      return (
+                        <tr key={event.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{event.title}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(event.event_date).toLocaleDateString()}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{event.start_time}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{event.end_time}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{event.location}</td>
+                          <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${color}`}>
+                            {status} {timeLeft && <span className="font-normal text-gray-500">({timeLeft})</span>}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            {user.id === event.created_by && (
+                              <Link href={`/events/edit/${event.id}`} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                                Edit
+                              </Link>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr><td colSpan="7" className="px-6 py-4 text-center text-gray-500">No events found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <div className="mt-8 bg-white p-6 rounded-lg shadow-md">

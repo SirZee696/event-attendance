@@ -35,21 +35,6 @@ export default function Account() {
         return
       }
 
-      const isStudent = user.email.endsWith('@student.dmmmsu.edu.ph')
-      const isEmployee = user.email.endsWith('@dmmmsu.edu.ph')
-
-      if (isStudent) {
-        setUserRole('student')
-      } else if (isEmployee) {
-        // The role will be set from the database if it exists,
-        // otherwise the user will be prompted to select one.
-      } else {
-        // If the user is not a student or employee, they are a guest.
-        // Automatically set their role and institution.
-        setUserRole('guest')
-        setAgency('GUEST')
-      }
-
       const { data, error } = await supabase
         .from('profiles')
         .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex, photo_consent, social_media_consent, signature_url, year, section`)
@@ -58,6 +43,19 @@ export default function Account() {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error)
+      }
+
+      const isStudent = user.email.endsWith('@student.dmmmsu.edu.ph')
+      const isEmployee = user.email.endsWith('@dmmmsu.edu.ph')
+
+      if (isStudent) {
+        setUserRole('student')
+      } else if (isEmployee) {
+        // For employees, the role is set from the database below.
+      } else {
+        // If not a student or employee, they are a guest.
+        setUserRole('guest')
+        setAgency('GUEST')
       }
 
       if (data) {
@@ -78,6 +76,7 @@ export default function Account() {
         setSection(data.section)
         setAvatarUrl(data.avatar_url)
       }
+
       setUser(user)
       setLoading(false)
     }
