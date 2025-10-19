@@ -114,24 +114,22 @@ export default function CreateEvent() {
               <label htmlFor="description" className="text-sm font-medium text-gray-700">Description</label>
               <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="eventDate" className="text-sm font-medium text-gray-700">Date</label>
-                <input id="eventDate" type="date" required value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <div>
+              <label htmlFor="eventDate" className="text-sm font-medium text-gray-700">Date</label>
+              <input id="eventDate" type="date" required value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <div className="flex justify-between items-baseline">
+                <label htmlFor="startTime" className="text-sm font-medium text-gray-700">Starting Time</label>
+                {syncedTime && (
+                  <span className="text-xs text-gray-500">Server Time: {syncedTime.toLocaleTimeString()}</span>
+                )}
               </div>
-              <div>
-                <div className="flex justify-between items-baseline">
-                  <label htmlFor="startTime" className="text-sm font-medium text-gray-700">Starting Time</label>
-                  {syncedTime && (
-                    <span className="text-xs text-gray-500">Server Time: {syncedTime.toLocaleTimeString()}</span>
-                  )}
-                </div>
-                <input id="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label htmlFor="endTime" className="text-sm font-medium text-gray-700">Closing Time</label>
-                <input id="endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
+              <input id="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label htmlFor="endTime" className="text-sm font-medium text-gray-700">Closing Time</label>
+              <input id="endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
               <label htmlFor="location" className="text-sm font-medium text-gray-700">Location</label>
