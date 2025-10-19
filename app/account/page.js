@@ -1,142 +1,314 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import SignatureCanvas from 'react-signature-canvas'
 
-function UserRow({ profile, onUpdate }) {
-  const [canCreate, setCanCreate] = useState(profile.can_create_events)
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState({ text: '', type: 'idle' })
-
-  const handleToggle = async (e) => {
-    setLoading(true)
-    setMessage({ text: 'Updating...', type: 'idle' })
-    const newStatus = e.target.checked
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ can_create_events: newStatus })
-      .eq('id', profile.id)
-
-    if (error) {
-      console.error('Error updating user permission:', error)
-      setMessage({ text: 'Error!', type: 'error' })
-      // Revert UI on error
-      setCanCreate(!newStatus)
-    } else {
-      setMessage({ text: 'Saved!', type: 'success' })
-      setCanCreate(newStatus)
-      onUpdate(profile.id, newStatus)
-    }
-    setLoading(false)
-    setTimeout(() => setMessage({ text: '', type: 'idle' }), 2000)
-  }
-
-  return (
-    <tr className="border-b hover:bg-gray-50">
-      <td className="px-6 py-4 text-sm font-medium text-gray-900">{profile.last_name}, {profile.first_name}</td>
-      <td className="px-6 py-4 text-sm text-gray-500">{profile.username}</td>
-      <td className="px-6 py-4 text-sm text-gray-500 capitalize">{profile.user_role}</td>
-      <td className="px-6 py-4 text-center">
-        <div className="flex items-center justify-center space-x-2">
-          <input
-            type="checkbox"
-            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            checked={canCreate}
-            onChange={handleToggle}
-            disabled={loading}
-            id={`user-${profile.id}`}
-          />
-          <label htmlFor={`user-${profile.id}`} className={`text-sm ${
-            message.type === 'success' ? 'text-green-600' : 
-            message.type === 'error' ? 'text-red-600' : 'text-gray-500'
-          }`}>
-            {message.text}
-          </label>
-        </div>
-      </td>
-    </tr>
-  )
-}
-
-export default function AdminDashboard() {
+export default function Account() {
   const [loading, setLoading] = useState(true)
-  const [profiles, setProfiles] = useState([])
+  const [user, setUser] = useState(null)
+  const [username, setUsername] = useState(null)
+  const [userRole, setUserRole] = useState(null)
+  const [firstName, setFirstName] = useState(null)
+  const [lastName, setLastName] = useState(null)
+  const [agency, setAgency] = useState(null)
+  const [address, setAddress] = useState(null)
+  const [sex, setSex] = useState(null)
+  const [year, setYear] = useState(null)
+  const [section, setSection] = useState(null)
+  const [avatarUrl, setAvatarUrl] = useState(null)
+  const [photoConsent, setPhotoConsent] = useState(false)
+  const [socialMediaConsent, setSocialMediaConsent] = useState(false)
+  const [signatureUrl, setSignatureUrl] = useState(null)
+  const [message, setMessage] = useState(null)
   const router = useRouter()
+  const sigPad = useRef(null)
 
   useEffect(() => {
-    async function checkAdminAndFetchProfiles() {
+    async function getProfile() {
+      setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
         return
       }
 
-      // Check if the current user is an admin
-      const { data: adminProfile, error: adminError } = await supabase
+      const isStudent = user.email.endsWith('@student.dmmmsu.edu.ph')
+      const isEmployee = user.email.endsWith('@dmmmsu.edu.ph')
+
+      if (isStudent) {
+        setUserRole('student')
+      } else if (isEmployee) {
+        // The role will be set from the database if it exists,
+        // otherwise the user will be prompted to select one.
+      } else {
+        // If the user is not a student or employee, they are a guest.
+        // Automatically set their role and institution.
+        setUserRole('guest')
+        setAgency('GUEST')
+      }
+
+      const { data, error } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex, photo_consent, social_media_consent, signature_url, year, section`)
         .eq('id', user.id)
         .single()
 
-      if (adminError || !adminProfile?.is_admin) {
-        // If not an admin, redirect to the main dashboard
-        router.push('/dashboard')
-        return
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching profile:', error)
       }
 
-      // If admin, fetch all user profiles
-      const { data: allProfiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, first_name, last_name, user_role, can_create_events')
-        .order('last_name', { ascending: true })
-
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError)
-      } else {
-        setProfiles(allProfiles)
+      if (data) {
+        setUsername(data.username)
+        // Only load role from DB for employees, as student/guest roles are auto-determined
+        if (isEmployee) {
+          setUserRole(data.user_role)
+        }
+        setFirstName(data.first_name)
+        setLastName(data.last_name)
+        setAgency(data.agency)
+        setAddress(data.address)
+        setSex(data.sex)
+        setPhotoConsent(data.photo_consent)
+        setSocialMediaConsent(data.social_media_consent)
+        setSignatureUrl(data.signature_url)
+        setYear(data.year)
+        setSection(data.section)
+        setAvatarUrl(data.avatar_url)
       }
+      setUser(user)
       setLoading(false)
     }
 
-    checkAdminAndFetchProfiles()
+    getProfile()
   }, [router])
 
-  const handleProfileUpdate = (id, newStatus) => {
-    setProfiles(profiles.map(p => p.id === id ? { ...p, can_create_events: newStatus } : p))
-  }
+  async function updateProfile(e) {
+    e.preventDefault()
+    setLoading(true)
+    setMessage(null)
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+    // Get signature data URL if the pad is not empty
+    const newSignatureUrl = sigPad.current && !sigPad.current.isEmpty()
+      ? sigPad.current.toDataURL('image/png')
+      : signatureUrl; // Keep the old one if the pad is not touched
+
+    const updates = {
+      id: user.id,
+      username,
+      user_role: userRole,
+      first_name: firstName,
+      last_name: lastName,
+      agency: agency,
+      address: address,
+      sex: sex,
+      photo_consent: photoConsent,
+      social_media_consent: socialMediaConsent,
+      year: userRole === 'student' ? year : null,
+      section: userRole === 'student' ? section : null,
+      signature_url: newSignatureUrl,
+      avatar_url: avatarUrl,
+      updated_at: new Date(),
+    }
+
+    const { error } = await supabase.from('profiles').upsert(updates)
+
+    if (error) {
+      if (error.message.includes('profiles_username_key')) {
+        setMessage({ text: 'This username is already taken. Please choose another one.', type: 'error' })
+      } else {
+        setMessage({ text: error.message, type: 'error' })
+      }
+    } else {
+      setMessage({ text: 'Profile updated successfully!', type: 'success' })
+    }
+    setSignatureUrl(newSignatureUrl); // Update local state to show new signature if saved
+    setLoading(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-          <Link href="/dashboard" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-            Back to Dashboard
-          </Link>
-        </div>
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">Manage Event Creators</h2>
-        <div className="overflow-x-auto border rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Can Create Events</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {profiles.map(profile => <UserRow key={profile.id} profile={profile} onUpdate={handleProfileUpdate} />)}
-            </tbody>
-          </table>
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 py-12">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold text-center text-gray-900">Account Settings</h1>
+        {message && (
+          <p className={`text-center ${message.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+            {message.text}
+          </p>
+        )}
+        <form className="space-y-4" onSubmit={updateProfile}>
+          <div>
+            <label htmlFor="email" className="text-sm font-medium text-gray-700">Email</label>
+            <input id="email" type="text" value={user?.email || ''} disabled className="w-full px-4 py-2 mt-1 text-gray-500 bg-gray-200 border rounded-lg cursor-not-allowed" />
+          </div>
+          <div>
+            <label htmlFor="username" className="text-sm font-medium text-gray-700">Username</label>
+            <input id="username" type="text" value={username || ''} onChange={(e) => setUsername(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label htmlFor="firstName" className="text-sm font-medium text-gray-700">First Name</label>
+            <input id="firstName" type="text" value={firstName || ''} onChange={(e) => setFirstName(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label htmlFor="lastName" className="text-sm font-medium text-gray-700">Last Name</label>
+            <input id="lastName" type="text" value={lastName || ''} onChange={(e) => setLastName(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label htmlFor="address" className="text-sm font-medium text-gray-700">Address</label>
+            <input id="address" type="text" value={address || ''} onChange={(e) => setAddress(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label htmlFor="sex" className="text-sm font-medium text-gray-700">Sex</label>
+            <select id="sex" value={sex ?? ''} onChange={(e) => setSex(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="" disabled>Select your sex</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="role" className="text-sm font-medium text-gray-700">Role</label>
+            <select
+              id="role"
+              value={userRole ?? ''}
+              onChange={(e) => {
+                const newRole = e.target.value;
+                setUserRole(newRole);
+                if (newRole !== 'student') {
+                  setYear(null);
+                  setSection(null);
+                }
+              }}
+              className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:cursor-not-allowed"
+              disabled={user?.email?.endsWith('@student.dmmmsu.edu.ph') || !user?.email?.endsWith('@dmmmsu.edu.ph')}
+            >
+              {user?.email?.endsWith('@student.dmmmsu.edu.ph') ? (
+                <option value="student">Student</option>
+              ) : user?.email?.endsWith('@dmmmsu.edu.ph') ? (
+                <>
+                  <option value="" disabled>Select a role</option>
+                  <option value="faculty">Faculty</option>
+                  <option value="staff">Staff</option>
+                </>
+              ) : (
+                <>
+                  <option value="guest">Guest</option>
+                </>
+              )}
+            </select>
+          </div>
+          {userRole === 'student' && (
+            <>
+              <div>
+                <label htmlFor="year" className="text-sm font-medium text-gray-700">Year Level</label>
+                <select
+                  id="year"
+                  value={year || ''}
+                  onChange={(e) => setYear(e.target.value)}
+                  className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="" disabled>Select a year</option>
+                  <option value="1">1st Year</option>
+                  <option value="2">2nd Year</option>
+                  <option value="3">3rd Year</option>
+                  <option value="4">4th Year</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="section" className="text-sm font-medium text-gray-700">Section</label>
+                <select
+                  id="section"
+                  value={section || ''}
+                  onChange={(e) => setSection(e.target.value)}
+                  className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="" disabled>Select a section</option>
+                  <option value="Irregular">Irregular</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                  <option value="E">E</option>
+                  <option value="F">F</option>
+                  <option value="G">G</option>
+                </select>
+              </div>
+            </>
+          )}
+          <div>
+            <label htmlFor="agency" className="text-sm font-medium text-gray-700">Agency</label>
+            <select
+              id="agency"
+              value={agency ?? ''}
+              onChange={(e) => setAgency(e.target.value)}
+              className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:cursor-not-allowed"
+              disabled={userRole === 'guest'}
+            >
+              {userRole === 'guest' ? (
+                <option value="GUEST">Guest</option>
+              ) : (
+                <>
+                  <option value="" disabled>Select an institution</option>
+                  <option value="SLUC">South La Union Campus</option>
+                  <option value="NLUC" disabled>North La Union Campus</option>
+                  <option value="MLUC" disabled>Mid La Union Campus</option>
+                  <option value="CA" disabled>Central Administration</option>
+                </>
+                )}
+            </select>
+          </div>
+          <div className="flex items-start pt-2">
+            <div className="flex items-center h-5">
+              <input id="photoConsent" type="checkbox" checked={photoConsent} onChange={(e) => setPhotoConsent(e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+            </div>
+            <div className="ml-3 text-sm">
+              <label htmlFor="photoConsent" className="font-medium text-gray-700">I allow to have my picture taken for official documentation purpose</label>
+            </div>
+          </div>
+          <div className="flex items-start pt-2">
+            <div className="flex items-center h-5">
+              <input id="socialMediaConsent" type="checkbox" checked={socialMediaConsent} onChange={(e) => setSocialMediaConsent(e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+            </div>
+            <div className="ml-3 text-sm">
+              <label htmlFor="socialMediaConsent" className="font-medium text-gray-700">I allow my photo to be shared on social media and email for official documentation purpose only.</label>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Digital Signature</label>
+            <div className="mt-1 border border-gray-300 rounded-lg">
+              <SignatureCanvas
+                ref={sigPad}
+                penColor='black'
+                canvasProps={{ className: 'w-full h-32 rounded-lg' }}
+              />
+            </div>
+            <div className="flex justify-end mt-2">
+              <button
+                type="button"
+                onClick={() => sigPad.current.clear()}
+                className="px-3 py-1 text-sm font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+              >
+                Clear Signature
+              </button>
+            </div>
+            {signatureUrl && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-700">Current Signature:</p>
+                <img src={signatureUrl} alt="User signature" className="mt-1 border border-gray-300 rounded-lg" />
+              </div>
+            )}
+          </div>
+
+          <div className="pt-4 space-y-2">
+            <button type="submit" className="w-full px-4 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50" disabled={loading}>
+              {loading ? 'Saving...' : 'Update Profile'}
+            </button>
+            <Link href="/dashboard" className="block w-full px-4 py-2 text-center text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300">
+              Back to Dashboard
+            </Link>
+          </div>
+        </form>
       </div>
     </div>
   )
