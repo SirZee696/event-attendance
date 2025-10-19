@@ -61,6 +61,11 @@ const Navbar = ({ user, profile, onLogout }) => {
               <Link href="/account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                 Account Settings
               </Link>
+              {profile.is_admin && (
+                <Link href="/admin" className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100">
+                  Admin Dashboard
+                </Link>
+              )}
               <button
                 onClick={() => {
                   onLogout()
@@ -95,7 +100,7 @@ export default function Dashboard() {
       // Check if the user's profile is complete
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('username, first_name, last_name, user_role, agency, address, sex, photo_consent, social_media_consent, signature_url')
+        .select('username, first_name, last_name, user_role, agency, address, sex, photo_consent, social_media_consent, signature_url, is_admin')
         .eq('id', user.id)
         .single();
 
