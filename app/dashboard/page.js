@@ -92,6 +92,7 @@ export default function Dashboard() {
   const router = useRouter()
 
   useEffect(() => {
+    let timeSyncTimer;
     async function checkUserSession() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -125,21 +126,35 @@ export default function Dashboard() {
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
         .select('*')
-        .order('event_date', { ascending: false });
+        .order('start_time', { ascending: false });
 
       if (eventsError) console.error('Error fetching events:', eventsError);
       else setEvents(eventsData);
+
+      // Sync time with the server
+      try {
+        const { data: now, error: timeError } = await supabase.rpc('now');
+        if (timeError) throw timeError;
+
+        const serverTime = new Date(now);
+        const offset = serverTime.getTime() - new Date().getTime();
+
+        timeSyncTimer = setInterval(() => {
+          setCurrentTime(new Date(new Date().getTime() + offset));
+        }, 1000);
+      } catch (error) {
+        console.error('Could not sync with server time, using client time as fallback.', error);
+        // Fallback to client time if server time is unavailable
+        timeSyncTimer = setInterval(() => setCurrentTime(new Date()), 1000);
+      }
     }
 
     checkUserSession();
 
-    // Set up a timer to update the current time every second for the countdown
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-
     // Clean up the timer when the component unmounts
-    return () => clearInterval(timer)
+    return () => {
+      if (timeSyncTimer) clearInterval(timeSyncTimer);
+    };
   }, [router])
 
   async function handleLogout() {
@@ -156,12 +171,12 @@ export default function Dashboard() {
   }
 
   const getEventStatus = (event) => {
-    if (!event.event_date || !event.start_time || !event.end_time) {
+    if (!event.start_time || !event.end_time) {
       return { status: 'Info Missing', timeLeft: null, color: 'text-gray-500' };
     }
 
-    const eventStart = new Date(`${event.event_date}T${event.start_time}`);
-    const eventEnd = new Date(`${event.event_date}T${event.end_time}`);
+    const eventStart = new Date(event.start_time);
+    const eventEnd = new Date(event.end_time);
 
     if (currentTime < eventStart) {
       return { status: 'Upcoming', timeLeft: null, color: 'text-blue-500' };
@@ -192,7 +207,7 @@ export default function Dashboard() {
   );
   const finishedEvents = events.filter(
     (event) => getEventStatus(event).status === 'Finished'
-  ).sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
+  ).sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
 
   const eventsToDisplay = activeTab === 'upcoming' ? upcomingEvents : finishedEvents;
 
@@ -270,9 +285,9 @@ export default function Dashboard() {
                       return (
                         <tr key={event.id}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{event.title}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(event.event_date).toLocaleDateString()}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{event.start_time}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{event.end_time}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(event.start_time).toLocaleDateString()}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(event.start_time).toLocaleTimeString()}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(event.end_time).toLocaleTimeString()}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{event.location}</td>
                           <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${color}`}>
                             {status} {timeLeft && <span className="font-normal text-gray-500">({timeLeft})</span>}

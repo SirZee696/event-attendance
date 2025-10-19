@@ -15,9 +15,11 @@ export default function CreateEvent() {
   const [endTime, setEndTime] = useState('')
   const [location, setLocation] = useState('')
   const [message, setMessage] = useState(null)
+  const [syncedTime, setSyncedTime] = useState(null)
   const router = useRouter()
 
   useEffect(() => {
+    let timer;
     async function checkPermission() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -38,9 +40,29 @@ export default function CreateEvent() {
       } else {
         setLoading(false)
       }
+
+      // Fetch server time to sync a local clock
+      try {
+        const { data: now, error: timeError } = await supabase.rpc('now')
+        if (timeError) throw timeError
+
+        const serverTime = new Date(now)
+        const offset = serverTime.getTime() - new Date().getTime()
+
+        timer = setInterval(() => {
+          setSyncedTime(new Date(new Date().getTime() + offset))
+        }, 1000)
+      } catch (error) {
+        console.error('Could not sync with server time, using client time as fallback.', error)
+        // Fallback to client time if server time is unavailable
+        timer = setInterval(() => setSyncedTime(new Date()), 1000)
+      }
     }
     checkPermission()
 
+    return () => {
+      if (timer) clearInterval(timer)
+    }
   }, [router])
 
   async function handleCreateEvent(e) {
@@ -48,12 +70,14 @@ export default function CreateEvent() {
     setLoading(true)
     setMessage(null)
 
+    const startISO = startTime ? new Date(`${eventDate}T${startTime}`).toISOString() : null
+    const endISO = endTime ? new Date(`${eventDate}T${endTime}`).toISOString() : null
+
     const { error } = await supabase.from('events').insert({
       title,
       description,
-      event_date: eventDate,
-      start_time: startTime || null,
-      end_time: endTime || null,
+      start_time: startISO,
+      end_time: endISO,
       location,
       created_by: user.id,
     })
@@ -90,13 +114,18 @@ export default function CreateEvent() {
               <label htmlFor="description" className="text-sm font-medium text-gray-700">Description</label>
               <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label htmlFor="eventDate" className="text-sm font-medium text-gray-700">Date</label>
                 <input id="eventDate" type="date" required value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label htmlFor="startTime" className="text-sm font-medium text-gray-700">Starting Time</label>
+                <div className="flex justify-between items-baseline">
+                  <label htmlFor="startTime" className="text-sm font-medium text-gray-700">Starting Time</label>
+                  {syncedTime && (
+                    <span className="text-xs text-gray-500">Server Time: {syncedTime.toLocaleTimeString()}</span>
+                  )}
+                </div>
                 <input id="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>

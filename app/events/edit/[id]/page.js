@@ -16,6 +16,7 @@ export default function EditEvent({ params }) {
   const [endTime, setEndTime] = useState('')
   const [location, setLocation] = useState('')
   const [message, setMessage] = useState(null)
+  const [syncedTime, setSyncedTime] = useState(null)
   const router = useRouter()
   const { id: eventId } = use(params)
 
@@ -40,15 +41,20 @@ export default function EditEvent({ params }) {
 
     setEvent(data)
     setTitle(data.title)
-    setDescription(data.description || '')
-    setEventDate(data.event_date)
-    setStartTime(data.start_time || '')
-    setEndTime(data.end_time || '')
+    setDescription(data.description || '');
+
+    // Extract date and time from ISO strings
+    const startDate = data.start_time ? new Date(data.start_time) : null;
+    const endDate = data.end_time ? new Date(data.end_time) : null;
+    setEventDate(startDate ? startDate.toISOString().split('T')[0] : '');
+    setStartTime(startDate ? startDate.toTimeString().split(' ')[0].substring(0, 5) : '');
+    setEndTime(endDate ? endDate.toTimeString().split(' ')[0].substring(0, 5) : '');
     setLocation(data.location || '')
     setLoading(false)
   }, [eventId, router])
 
   useEffect(() => {
+    let timer;
     async function checkUserAndFetch() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -57,8 +63,29 @@ export default function EditEvent({ params }) {
       }
       setUser(user)
       await fetchEvent(user)
+
+      // Fetch server time to sync a local clock
+      try {
+        const { data: now, error: timeError } = await supabase.rpc('now')
+        if (timeError) throw timeError
+
+        const serverTime = new Date(now)
+        const offset = serverTime.getTime() - new Date().getTime()
+
+        timer = setInterval(() => {
+          setSyncedTime(new Date(new Date().getTime() + offset))
+        }, 1000)
+      } catch (error) {
+        console.error('Could not sync with server time, using client time as fallback.', error)
+        // Fallback to client time if server time is unavailable
+        timer = setInterval(() => setSyncedTime(new Date()), 1000)
+      }
     }
     checkUserAndFetch()
+
+    return () => {
+      if (timer) clearInterval(timer)
+    }
   }, [router, fetchEvent])
 
   async function handleUpdateEvent(e) {
@@ -66,14 +93,16 @@ export default function EditEvent({ params }) {
     setLoading(true)
     setMessage(null)
 
+    const startISO = startTime ? new Date(`${eventDate}T${startTime}`).toISOString() : null
+    const endISO = endTime ? new Date(`${eventDate}T${endTime}`).toISOString() : null
+
     const { error } = await supabase
       .from('events')
       .update({
         title,
         description,
-        event_date: eventDate,
-        start_time: startTime || null,
-        end_time: endTime || null,
+        start_time: startISO,
+        end_time: endISO,
         location,
       })
       .eq('id', eventId)
@@ -110,18 +139,23 @@ export default function EditEvent({ params }) {
               <label htmlFor="description" className="text-sm font-medium text-gray-700">Description</label>
               <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label htmlFor="eventDate" className="text-sm font-medium text-gray-700">Date</label>
                 <input id="eventDate" type="date" required value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label htmlFor="startTime" className="text-sm font-medium text-gray-700">Starting Time</label>
-                <input id="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <div className="flex justify-between items-baseline">
+                  <label htmlFor="startTime" className="text-sm font-medium text-gray-700">Starting Time</label>
+                  {syncedTime && (
+                    <span className="text-xs text-gray-500">Server Time: {syncedTime.toLocaleTimeString()}</span>
+                  )}
+                </div>
+                <input id="startTime" type="time" required value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label htmlFor="endTime" className="text-sm font-medium text-gray-700">Closing Time</label>
-                <input id="endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input id="endTime" type="time" required value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
             </div>
             <div>
