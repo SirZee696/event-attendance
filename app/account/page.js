@@ -18,6 +18,8 @@ export default function Account() {
   const [sex, setSex] = useState(null)
   const [year, setYear] = useState(null)
   const [section, setSection] = useState(null)
+  const [position, setPosition] = useState(null)
+  const [unit, setUnit] = useState(null)
   const [avatarUrl, setAvatarUrl] = useState(null)
   const [photoConsent, setPhotoConsent] = useState(false)
   const [socialMediaConsent, setSocialMediaConsent] = useState(false)
@@ -37,7 +39,7 @@ export default function Account() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex, photo_consent, social_media_consent, signature_url, year, section`)
+        .select(`username, first_name, last_name, user_role, agency, avatar_url, address, sex, photo_consent, social_media_consent, signature_url, year, section, position, unit`)
         .eq('id', user.id)
         .single()
 
@@ -74,6 +76,8 @@ export default function Account() {
         setSignatureUrl(data.signature_url)
         setYear(data.year)
         setSection(data.section)
+        setPosition(data.position)
+        setUnit(data.unit)
         setAvatarUrl(data.avatar_url)
       }
 
@@ -107,6 +111,8 @@ export default function Account() {
       social_media_consent: socialMediaConsent,
       year: userRole === 'student' ? year : null,
       section: userRole === 'student' ? section : null,
+      unit: (userRole === 'faculty' || userRole === 'staff' || userRole === 'student') ? unit : null,
+      position: userRole === 'faculty' ? position : null,
       signature_url: newSignatureUrl,
       avatar_url: avatarUrl,
       updated_at: new Date(),
@@ -120,11 +126,14 @@ export default function Account() {
       } else {
         setMessage({ text: error.message, type: 'error' })
       }
+      setLoading(false)
     } else {
-      setMessage({ text: 'Profile updated successfully!', type: 'success' })
+      setMessage({ text: 'Profile updated successfully! Redirecting to dashboard...', type: 'success' })
+      setSignatureUrl(newSignatureUrl); // Update local state to show new signature if saved
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000); // 2-second delay before redirecting
     }
-    setSignatureUrl(newSignatureUrl); // Update local state to show new signature if saved
-    setLoading(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -177,6 +186,12 @@ export default function Account() {
                 if (newRole !== 'student') {
                   setYear(null);
                   setSection(null);
+                }
+                if (newRole !== 'faculty') {
+                  setPosition(null);
+                }
+                if (newRole !== 'faculty' && newRole !== 'staff' && newRole !== 'student') {
+                  setUnit(null);
                 }
               }}
               className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:cursor-not-allowed"
@@ -234,6 +249,59 @@ export default function Account() {
                 </select>
               </div>
             </>
+          )}
+          {userRole === 'faculty' && (
+            <div>
+              <label htmlFor="position" className="text-sm font-medium text-gray-700">Position</label>
+              <select
+                id="position"
+                value={position || ''}
+                onChange={(e) => setPosition(e.target.value)}
+                className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="" disabled>Select a position</option>
+                <option value="Inst1">Instructor I</option>
+                <option value="Inst2">Instructor II</option>
+                <option value="Inst3">Instructor III</option>
+                <option value="AsstProf1">Assistant Professor I</option>
+                <option value="AsstProf2">Assistant Professor II</option>
+                <option value="AsstProf3">Assistant Professor III</option>
+                <option value="AsstProf4">Assistant Professor IV</option>
+                <option value="AssocProf1">Associate Professor I</option>
+                <option value="AssocProf2">Associate Professor II</option>
+                <option value="AssocProf3">Associate Professor III</option>
+                <option value="AssocProf4">Associate Professor IV</option>
+                <option value="AssocProf5">Associate Professor V</option>
+                <option value="Prof1">Professor I</option>
+                <option value="Prof2">Professor II</option>
+                <option value="Prof3">Professor III</option>
+                <option value="Prof4">Professor IV</option>
+                <option value="Prof5">Professor V</option>
+                <option value="Prof6">Professor VI</option>
+              </select>
+            </div>
+          )}
+          {(userRole === 'faculty' || userRole === 'staff' || userRole === 'student') && (
+            <div>
+              <label htmlFor="unit" className="text-sm font-medium text-gray-700">Unit</label>
+              <select
+                id="unit"
+                value={unit || ''}
+                onChange={(e) => setUnit(e.target.value)}
+                className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="" disabled>Select a unit</option>
+                {(userRole === 'faculty' || userRole === 'staff') && <option value="ADMIN">ADMIN</option>}
+                <option value="CA">CA</option>
+                <option value="CAS">CAS</option>
+                <option value="CCHAMS">CCHAMS</option>
+                <option value="CCS">CCS</option>
+                <option value="CE">CE</option>
+                <option value="CF">CF</option>
+                <option value="CGS">CGS</option>
+                <option value="CM">CM</option>
+              </select>
+            </div>
           )}
           <div>
             <label htmlFor="agency" className="text-sm font-medium text-gray-700">Agency</label>

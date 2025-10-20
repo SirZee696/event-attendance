@@ -104,7 +104,7 @@ export default function Dashboard() {
       // Check if the user's profile is complete
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .select('username, first_name, last_name, user_role, agency, address, sex, photo_consent, social_media_consent, signature_url, is_admin, can_create_events, year, section')
+        .select('username, first_name, last_name, user_role, agency, address, sex, photo_consent, social_media_consent, signature_url, is_admin, can_create_events, year, section, position, unit')
         .eq('id', user.id)
         .single();
 
@@ -116,7 +116,9 @@ export default function Dashboard() {
         !profileData.user_role || !profileData.address || !profileData.sex || 
         profileData.photo_consent === null || profileData.social_media_consent === null || 
         !profileData.signature_url || (profileData.user_role !== 'guest' && !profileData.agency) ||
-        (profileData.user_role === 'student' && (!profileData.year || !profileData.section))
+        (profileData.user_role === 'student' && (!profileData.year || !profileData.section || !profileData.unit)) ||
+        (profileData.user_role === 'faculty' && (!profileData.position || !profileData.unit)) ||
+        (profileData.user_role === 'staff' && !profileData.unit)
       ) {
         // If profile is incomplete, redirect to the account page
         router.push('/account');
@@ -208,6 +210,27 @@ export default function Dashboard() {
   const finishedEvents = events.filter(
     (event) => getEventStatus(event).status === 'Finished'
   ).sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
+
+  const positionMap = {
+    'Inst1': 'Instructor I',
+    'Inst2': 'Instructor II',
+    'Inst3': 'Instructor III',
+    'AsstProf1': 'Assistant Professor I',
+    'AsstProf2': 'Assistant Professor II',
+    'AsstProf3': 'Assistant Professor III',
+    'AsstProf4': 'Assistant Professor IV',
+    'AssocProf1': 'Associate Professor I',
+    'AssocProf2': 'Associate Professor II',
+    'AssocProf3': 'Associate Professor III',
+    'AssocProf4': 'Associate Professor IV',
+    'AssocProf5': 'Associate Professor V',
+    'Prof1': 'Professor I',
+    'Prof2': 'Professor II',
+    'Prof3': 'Professor III',
+    'Prof4': 'Professor IV',
+    'Prof5': 'Professor V',
+    'Prof6': 'Professor VI',
+  };
 
   const eventsToDisplay = activeTab === 'upcoming' ? upcomingEvents : finishedEvents;
 
@@ -334,7 +357,24 @@ export default function Dashboard() {
                 <tr>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{profile.last_name}, {profile.first_name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{profile.address}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{profile.user_role}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {profile.user_role === 'faculty' && profile.position && profile.unit ? (
+                      <div className="flex flex-col">
+                        <span>{positionMap[profile.position] || profile.position}</span>
+                        <span>{profile.unit}</span>
+                      </div>
+                    ) : profile.user_role === 'staff' && profile.unit ? (
+                      <div className="flex flex-col">
+                        <span>{profile.user_role}</span>
+                        <span>{profile.unit}</span>
+                      </div>
+                    ) : profile.user_role === 'student' && profile.year && profile.section && profile.unit ? (
+                      <div className="flex flex-col">
+                        <span>{profile.year}{profile.year === '1' ? 'st' : profile.year === '2' ? 'nd' : profile.year === '3' ? 'rd' : 'th'} Year, {profile.section}</span>
+                        <span>{profile.unit}</span>
+                      </div>
+                    ) : <span className="capitalize">{profile.user_role}</span>}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{profile.agency}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate">{user.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{profile.sex}</td>
