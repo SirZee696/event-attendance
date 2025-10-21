@@ -139,9 +139,13 @@ export default function EditEvent({ params }) {
   };
 
   const roles = ['student', 'faculty', 'staff', 'guest'];
-  const units = ['CA', 'CAS', 'CCHAMS', 'CCS', 'CE', 'CF', 'CGS', 'CM'];
+  const baseUnits = ['CA', 'CAS', 'CCHAMS', 'CCS', 'CE', 'CF', 'CGS', 'CM'];
   const yearLevels = ['1', '2', '3', '4'];
   const sections = ['Irregular', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+  const units = targetRoles.includes('staff')
+    ? ['ADMIN', ...baseUnits]
+    : baseUnits;
 
   if (loading && !message) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
