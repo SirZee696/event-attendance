@@ -15,6 +15,10 @@ export default function EditEvent({ params }) {
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [location, setLocation] = useState('')
+  const [targetRoles, setTargetRoles] = useState([])
+  const [targetUnits, setTargetUnits] = useState([])
+  const [targetYearLevels, setTargetYearLevels] = useState([])
+  const [targetSections, setTargetSections] = useState([])
   const [message, setMessage] = useState(null)
   const [syncedTime, setSyncedTime] = useState(null)
   const router = useRouter()
@@ -49,6 +53,10 @@ export default function EditEvent({ params }) {
     setEventDate(startDate ? startDate.toISOString().split('T')[0] : '');
     setStartTime(startDate ? startDate.toTimeString().split(' ')[0].substring(0, 5) : '');
     setEndTime(endDate ? endDate.toTimeString().split(' ')[0].substring(0, 5) : '');
+    setTargetRoles(data.target_roles || []);
+    setTargetUnits(data.target_units || []);
+    setTargetYearLevels(data.target_year_levels || []);
+    setTargetSections(data.target_sections || []);
     setLocation(data.location || '')
     setLoading(false)
   }, [eventId, router])
@@ -103,6 +111,10 @@ export default function EditEvent({ params }) {
         description,
         start_time: startISO,
         end_time: endISO,
+        target_roles: targetRoles.length > 0 ? targetRoles : null,
+        target_units: targetUnits.length > 0 ? targetUnits : null,
+        target_year_levels: targetYearLevels.length > 0 ? targetYearLevels : null,
+        target_sections: targetSections.length > 0 ? targetSections : null,
         location,
       })
       .eq('id', eventId)
@@ -115,6 +127,21 @@ export default function EditEvent({ params }) {
     }
     setLoading(false)
   }
+
+  const handleCheckboxChange = (setter, value) => {
+    setter((prev) => {
+      if (prev.includes(value)) {
+        return prev.filter((item) => item !== value);
+      } else {
+        return [...prev, value];
+      }
+    });
+  };
+
+  const roles = ['student', 'faculty', 'staff', 'guest'];
+  const units = ['CA', 'CAS', 'CCHAMS', 'CCS', 'CE', 'CF', 'CGS', 'CM'];
+  const yearLevels = ['1', '2', '3', '4'];
+  const sections = ['Irregular', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
   if (loading && !message) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
@@ -160,6 +187,65 @@ export default function EditEvent({ params }) {
               <label htmlFor="location" className="text-sm font-medium text-gray-700">Location</label>
               <input id="location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-4 py-2 mt-1 text-gray-700 bg-gray-100 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
+
+            <div className="space-y-4 border-t pt-4 mt-4">
+              <h2 className="text-lg font-semibold text-gray-800">Target Audience</h2>
+              <p className="text-sm text-gray-500 -mt-2">Leave all checkboxes unchecked to make the event visible to everyone.</p>
+              <div className="space-y-2">
+                <label htmlFor="targetRole" className="text-sm font-medium text-gray-700">Target Role</label>
+                <div className="flex flex-wrap gap-y-2">
+                  {roles.map(role => (
+                    <label key={role} className="flex items-center space-x-2 mr-1 py-1 px-2 rounded hover:bg-gray-100 cursor-pointer">
+                      <input type="checkbox" checked={targetRoles.includes(role)} onChange={() => handleCheckboxChange(setTargetRoles, role)} className="rounded text-blue-600 focus:ring-blue-500" />
+                      <span className="text-sm capitalize text-gray-700">{role}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {targetRoles.some(role => ['student', 'faculty', 'staff'].includes(role)) && (
+                <div className="space-y-2">
+                  <label htmlFor="targetUnit" className="text-sm font-medium text-gray-700">Target Unit</label>
+                  <div className="flex flex-wrap gap-y-2">
+                    {units.map(unit => (
+                      <label key={unit} className="flex items-center space-x-2 mr-1 py-1 px-2 rounded hover:bg-gray-100 cursor-pointer">
+                        <input type="checkbox" checked={targetUnits.includes(unit)} onChange={() => handleCheckboxChange(setTargetUnits, unit)} className="rounded text-blue-600 focus:ring-blue-500" />
+                        <span className="text-sm text-gray-700">{unit}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {targetRoles.includes('student') && (
+                <div className="space-y-2">
+                  <label htmlFor="targetYearLevel" className="text-sm font-medium text-gray-700">Target Year Level</label>
+                  <div className="flex flex-wrap gap-y-2">
+                    {yearLevels.map(year => (
+                      <label key={year} className="flex items-center space-x-2 mr-1 py-1 px-2 rounded hover:bg-gray-100 cursor-pointer">
+                        <input type="checkbox" checked={targetYearLevels.includes(year)} onChange={() => handleCheckboxChange(setTargetYearLevels, year)} className="rounded text-blue-600 focus:ring-blue-500" />
+                        <span className="text-sm text-gray-700">{year}{year === '1' ? 'st' : year === '2' ? 'nd' : year === '3' ? 'rd' : 'th'} Year</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {targetRoles.includes('student') && (
+                <div className="space-y-2">
+                  <label htmlFor="targetSection" className="text-sm font-medium text-gray-700">Target Section</label>
+                  <div className="flex flex-wrap gap-y-2">
+                    {sections.map(section => (
+                      <label key={section} className="flex items-center space-x-2 mr-1 py-1 px-2 rounded hover:bg-gray-100 cursor-pointer">
+                        <input type="checkbox" checked={targetSections.includes(section)} onChange={() => handleCheckboxChange(setTargetSections, section)} className="rounded text-blue-600 focus:ring-blue-500" />
+                        <span className="text-sm text-gray-700">{section}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="pt-4 space-y-2">
               <button type="submit" className="w-full px-4 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50" disabled={loading}>
                 {loading ? 'Updating...' : 'Update Event'}

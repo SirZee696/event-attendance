@@ -204,10 +204,37 @@ export default function Dashboard() {
     return { status: 'Finished', timeLeft: null, color: 'text-red-500' };
   };
 
-  const upcomingEvents = events.filter(
+  const filteredEvents = events.filter(event => {
+    // 1. Always show if the user is the creator
+    if (user && event.created_by === user.id) {
+      return true;
+    }
+
+    // 2. Show if the event is public (no roles specified)
+    if (!event.target_roles || event.target_roles.length === 0) {
+      return true;
+    }
+
+    // 3. Check if the user's role is targeted
+    if (!event.target_roles.includes(profile.user_role)) return false;
+
+    // 4. Apply role-specific filters only if they are relevant
+    const hasUnitFilter = event.target_units && event.target_units.length > 0;
+    if (hasUnitFilter && ['student', 'faculty', 'staff'].includes(profile.user_role) && !event.target_units.includes(profile.unit)) return false;
+    
+    const hasYearFilter = event.target_year_levels && event.target_year_levels.length > 0;
+    if (profile.user_role === 'student' && hasYearFilter && !event.target_year_levels.includes(profile.year)) return false;
+    
+    const hasSectionFilter = event.target_sections && event.target_sections.length > 0;
+    if (profile.user_role === 'student' && hasSectionFilter && !event.target_sections.includes(profile.section)) return false;
+
+    return true;
+  });
+
+  const upcomingEvents = filteredEvents.filter(
     (event) => getEventStatus(event).status !== 'Finished'
   );
-  const finishedEvents = events.filter(
+  const finishedEvents = filteredEvents.filter(
     (event) => getEventStatus(event).status === 'Finished'
   ).sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
 
