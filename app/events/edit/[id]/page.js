@@ -123,6 +123,12 @@ export default function EditEvent({ params }) {
       setMessage({ text: `Error updating event: ${error.message}`, type: 'error' })
     } else {
       setMessage({ text: 'Event updated successfully! Redirecting...', type: 'success' })
+
+      // Fire and forget: Invoke the edge function without awaiting the result
+      // It's good practice to catch potential errors so they can be logged.
+      supabase.functions.invoke('send-event-notification', {
+        body: { eventId: eventId },
+      }).catch(console.error);
       setTimeout(() => router.push('/dashboard'), 2000)
     }
     setLoading(false)

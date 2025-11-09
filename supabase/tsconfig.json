@@ -1,0 +1,12 @@
+{
+  // This tsconfig is for the Deno runtime.
+  // It is used by the Deno VS Code extension.
+  "compilerOptions": {
+    // Tells TypeScript to use Deno's built-in type definitions.
+    "lib": ["deno.ns"],
+    // Deno requires ESNext modules.
+    "module": "esnext",
+    // This is required for Deno to work correctly.
+    "moduleResolution": "bundler"
+  }
+}

@@ -77,7 +77,7 @@ export default function CreateEvent() {
     const startISO = startTime ? new Date(`${eventDate}T${startTime}`).toISOString() : null
     const endISO = endTime ? new Date(`${eventDate}T${endTime}`).toISOString() : null
 
-    const { error } = await supabase.from('events').insert({
+    const { data: newEvent, error } = await supabase.from('events').insert({
       title,
       description,
       start_time: startISO,
@@ -89,11 +89,19 @@ export default function CreateEvent() {
       target_sections: targetSections.length > 0 ? targetSections : null,
       created_by: user.id,
     })
+    .select('id')
+    .single()
 
     if (error) {
       setMessage({ text: `Error creating event: ${error.message}`, type: 'error' })
     } else {
       setMessage({ text: 'Event created successfully! Redirecting...', type: 'success' })
+      
+      // Fire and forget: Invoke the edge function without awaiting the result
+      // It's good practice to catch potential errors so they can be logged.
+      supabase.functions.invoke('send-event-notification', {
+        body: { eventId: newEvent.id },
+      }).catch(console.error);
       setTimeout(() => router.push('/dashboard'), 2000)
     }
     setLoading(false)
