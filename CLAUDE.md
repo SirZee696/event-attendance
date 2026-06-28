@@ -67,6 +67,13 @@ Event visibility on the dashboard is filtered client-side: events with no `targe
 - Hosted on **Vercel** — auto-deploys on push to `main`
 - Environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) must be set in Vercel project settings
 
+## Pull Request Rules
+
+- All code must go through a PR into `dev` before merging
+- PRs should reference the module being built (e.g. "Implements #3 — Inventory module")
+- `main` only receives merges from `dev` when a milestone is complete and tested
+- Never force-push to `main` or `dev`
+
 ## Commit & Push Discipline
 
 - Commit after every meaningful unit of work — finishing a component, fixing a bug, updating the schema, writing a utility function
