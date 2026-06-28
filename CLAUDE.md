@@ -66,3 +66,11 @@ Event visibility on the dashboard is filtered client-side: events with no `targe
 
 - Hosted on **Vercel** — auto-deploys on push to `main`
 - Environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) must be set in Vercel project settings
+
+## Commit & Push Discipline
+
+- Commit after every meaningful unit of work — finishing a component, fixing a bug, updating the schema, writing a utility function
+- Push to GitHub after every commit — do not accumulate local commits without pushing
+- Never end a working session without committing and pushing — all progress must be on GitHub before stopping
+- If a task is too large to finish in one sitting, commit partial work with a `wip:` prefix on the commit message
+- Before starting any new task, always run `git status` first — if there are uncommitted changes, commit and push them before moving on
