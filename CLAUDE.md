@@ -64,6 +64,7 @@ Event visibility on the dashboard is filtered client-side: events with no `targe
 
 ## Deployment
 
+- Live at **https://eventattendance.southcampuslabs.org/**
 - Hosted on **Hostinger** (Business plan) — connected to GitHub, auto-deploys on push to `main`
 - Node.js version: **20.x**, Framework: **Next.js**
 - Environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) must be set in Hostinger hPanel
