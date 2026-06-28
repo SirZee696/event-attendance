@@ -64,8 +64,10 @@ Event visibility on the dashboard is filtered client-side: events with no `targe
 
 ## Deployment
 
-- Hosted on **Vercel** — auto-deploys on push to `main`
-- Environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) must be set in Vercel project settings
+- Hosted on **Hostinger** (Business plan) — connected to GitHub, auto-deploys on push to `main`
+- Node.js version: **20.x**, Framework: **Next.js**
+- Environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) must be set in Hostinger hPanel
+- Supabase remains the backend — auth, database, storage, and edge functions are all on Supabase
 
 ## Pull Request Rules
 
